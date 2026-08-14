@@ -38,3 +38,5 @@ publish-preflight --cmd ""          # no args
 ```
 
 Node 18+. No runtime dependencies.
+
+Launch cut: [launch.mp4](./launch.mp4)
