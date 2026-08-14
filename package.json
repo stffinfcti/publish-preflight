@@ -1,24 +1,21 @@
 {
   "name": "publish-preflight",
-  "version": "0.1.0",
-  "description": "Clean-room publish gate: pack, install into a fresh temp env exactly as a stranger would, execute the bin, fail if the README's install command wouldn't work.",
+  "version": "0.2.0",
+  "description": "Pack an npm tarball, install it, and smoke-test bins or require/import as a consumer would.",
   "license": "MIT",
   "type": "commonjs",
-  "bin": {
-    "preflight": "bin/preflight.js",
-    "publish-preflight": "bin/preflight.js"
-  },
+  "bin": "./bin/publish-preflight.js",
   "engines": {
     "node": ">=18"
   },
   "scripts": {
-    "test": "node test/preflight.test.js"
+    "test": "node test/preflight.test.js",
+    "prepublishOnly": "node ./bin/publish-preflight.js"
   },
   "keywords": [
     "publish",
-    "preflight",
     "npm",
-    "clean-room",
+    "pack",
     "verify",
     "release",
     "ci"
