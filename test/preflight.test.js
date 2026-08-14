@@ -112,18 +112,18 @@ try {
   r = runTool(omitDir);
   assert(r.status === 1 && /not in the tarball/.test(r.out), 'omitted main fails');
 
-  // 8. files field omits bin
-  const omitBinDir = path.join(TMP, 'omit-bin');
-  writeFile(omitBinDir, 'package.json', JSON.stringify({
-    name: 'omit-bin-pkg',
+  // 8. bin packed, but a required helper is omitted from files
+  const omitHelperDir = path.join(TMP, 'omit-helper');
+  writeFile(omitHelperDir, 'package.json', JSON.stringify({
+    name: 'omit-helper-pkg',
     version: '1.0.0',
-    bin: { 'omit-bin-pkg': './bin/cli.js' },
-    files: ['README.md'],
+    bin: { 'omit-helper-pkg': './bin/cli.js' },
+    files: ['bin/cli.js'],
   }, null, 2));
-  writeFile(omitBinDir, 'bin/cli.js', CLI, 0o755);
-  writeFile(omitBinDir, 'README.md', 'hi\n');
-  r = runTool(omitBinDir);
-  assert(r.status === 1 && /not in the tarball/.test(r.out), 'omitted bin fails');
+  writeFile(omitHelperDir, 'bin/cli.js', '#!/usr/bin/env node\nrequire("../lib/helper.js");\n', 0o755);
+  writeFile(omitHelperDir, 'lib/helper.js', 'console.log("1.0.0");\n');
+  r = runTool(omitHelperDir);
+  assert(r.status === 1 && /failed \(exit/.test(r.out), 'bin missing required helper fails');
 
   // 9. Missing shebang
   const noshDir = path.join(TMP, 'noshebang');

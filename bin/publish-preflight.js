@@ -147,14 +147,22 @@ function firstLine(text) {
   return nl === -1 ? text : text.slice(0, nl);
 }
 
-function checkInstalledBinFile(filePath, binName) {
-  if (!fs.existsSync(filePath)) {
-    return `bin ${binName} missing from installed package`;
+// Read the packed file, not the working tree or the install. npm extract can
+// normalize CRLF; the tarball is what the registry stores.
+function readPackedFile(tarball, rel) {
+  const member = `package/${relFile(rel)}`;
+  const res = run('tar', ['-xOf', tarball, member], { timeout: 15_000 });
+  if (res.status !== 0) {
+    const detail = (res.stderr || '').trim();
+    return { error: `could not read ${member} from tarball${detail ? `: ${detail}` : ''}` };
   }
-  if (!fs.statSync(filePath).isFile()) {
-    return `bin ${binName} is not a file`;
-  }
-  const head = firstLine(fs.readFileSync(filePath, 'utf8'));
+  return { content: res.stdout };
+}
+
+function checkPackedBin(tarball, rel, binName) {
+  const { content, error } = readPackedFile(tarball, rel);
+  if (error) return error;
+  const head = firstLine(content);
   if (head.startsWith('#!') && head.endsWith('\r')) {
     return `bin ${binName} has a CRLF shebang (dies on Linux with "bad interpreter")`;
   }
@@ -293,13 +301,28 @@ function main() {
       if (filesOk) pass('declared bin/main/exports paths are in the tarball');
     }
 
+    for (const [binName, rel] of Object.entries(bins)) {
+      if (typeof rel !== 'string') {
+        fail(`bin ${binName} is not a string path`);
+        ok = false;
+        continue;
+      }
+      if (!packed.has(relFile(rel))) continue;
+      const shebangErr = checkPackedBin(tarball, rel, binName);
+      if (shebangErr) {
+        fail(shebangErr);
+        ok = false;
+      }
+    }
+
     console.log('\n── 2/3 install ──');
     const installDir = path.join(tmp, 'fresh');
     fs.mkdirSync(installDir);
     const installRes = run('npm', [
       'install',
       tarball,
-      '--no-cache',
+      '--cache',
+      path.join(tmp, 'npm-cache'),
       '--no-audit',
       '--no-fund',
       '--prefix',
@@ -331,14 +354,6 @@ function main() {
           fail(`bin ${binName} is not a string path`);
           ok = false;
           continue;
-        }
-
-        const installed = path.join(installDir, 'node_modules', pkg.name, relFile(rel));
-        const shebangErr = checkInstalledBinFile(installed, binName);
-        if (shebangErr) {
-          fail(shebangErr);
-          ok = false;
-          if (!fs.existsSync(installed) || !fs.statSync(installed).isFile()) continue;
         }
 
         const shim = resolveBinShim(installDir, binName);
