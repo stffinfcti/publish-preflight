@@ -1,0 +1,28 @@
+{
+  "name": "@ricardodevs/publish-preflight",
+  "version": "0.2.1",
+  "description": "Pack an npm tarball, install it, and smoke-test bins or require/import as a consumer would.",
+  "license": "MIT",
+  "type": "commonjs",
+  "bin": {
+    "publish-preflight": "./bin/publish-preflight.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "test": "node test/preflight.test.js",
+    "prepublishOnly": "node ./bin/publish-preflight.js"
+  },
+  "keywords": [
+    "publish",
+    "npm",
+    "pack",
+    "verify",
+    "release",
+    "ci"
+  ],
+  "files": [
+    "bin/"
+  ]
+}
