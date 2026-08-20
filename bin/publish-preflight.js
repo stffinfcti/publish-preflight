@@ -27,6 +27,10 @@ function pass(msg) {
   console.log(`✔ ${msg}`);
 }
 
+function npmCmd() {
+  return process.platform === 'win32' ? 'npm.cmd' : 'npm';
+}
+
 function run(cmd, args, opts = {}) {
   const { timeout = NPM_TIMEOUT_MS, ...rest } = opts;
   return spawnSync(cmd, args, {
@@ -34,6 +38,7 @@ function run(cmd, args, opts = {}) {
     stdio: ['ignore', 'pipe', 'pipe'],
     timeout,
     killSignal: 'SIGKILL',
+    windowsHide: true,
     ...rest,
   });
 }
@@ -260,7 +265,7 @@ function main() {
     tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'publish-preflight-'));
 
     console.log('── 1/3 pack ──');
-    const packRes = run('npm', ['pack', '--json', '--pack-destination', tmp], { cwd: pkgDir });
+    const packRes = run(npmCmd(), ['pack', '--json', '--pack-destination', tmp], { cwd: pkgDir });
     const packErr = runError(packRes, 'npm pack');
     if (packErr) {
       fail(packErr);
@@ -318,7 +323,7 @@ function main() {
     console.log('\n── 2/3 install ──');
     const installDir = path.join(tmp, 'fresh');
     fs.mkdirSync(installDir);
-    const installRes = run('npm', [
+    const installRes = run(npmCmd(), [
       'install',
       tarball,
       '--cache',
