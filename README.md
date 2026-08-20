@@ -4,8 +4,8 @@ Pack the npm tarball, install it into a temp directory, and smoke-test what a
 consumer would run: each `bin`, or `require`/`import` for libraries.
 
 ```bash
-npx publish-preflight
-npx publish-preflight ./path/to/package
+npx @ricardodevs/publish-preflight
+npx @ricardodevs/publish-preflight ./path/to/package
 ```
 
 Exit 0 if the packed artifact installs and loads. Exit 1 if it would not.
@@ -32,7 +32,7 @@ publish-preflight --cmd ""          # no args
 ```json
 {
   "scripts": {
-    "prepublishOnly": "publish-preflight"
+    "prepublishOnly": "npx @ricardodevs/publish-preflight"
   }
 }
 ```
