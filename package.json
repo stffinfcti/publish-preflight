@@ -1,6 +1,6 @@
 {
   "name": "@ricardodevs/publish-preflight",
-  "version": "0.2.1",
+  "version": "0.3.0",
   "description": "Pack an npm tarball, install it, and smoke-test bins or require/import as a consumer would.",
   "license": "MIT",
   "type": "commonjs",
@@ -23,6 +23,11 @@
     "ci"
   ],
   "files": [
-    "bin/"
-  ]
+    "bin/",
+    "skills/"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/stffinfcti/publish-preflight.git"
+  }
 }
