@@ -160,6 +160,73 @@ try {
     .filter((n) => n.startsWith('publish-preflight-'))
     .filter((n) => !before.has(n));
   assert(leaked.length === 0, 'does not leak temp directories');
+
+  // 13. init wires prepublishOnly and a Cursor skill
+  const initDir = path.join(TMP, 'init-pkg');
+  writeFile(initDir, 'package.json', JSON.stringify({
+    name: 'init-pkg',
+    version: '1.0.0',
+    scripts: { test: 'node test.js' },
+  }, null, 2));
+  r = runTool(initDir, ['init']);
+  const inited = JSON.parse(fs.readFileSync(path.join(initDir, 'package.json'), 'utf8'));
+  assert(r.status === 0 && /publish-preflight is on the publish path/.test(r.out), 'init exits 0');
+  assert(!/1\/3 pack/.test(r.out), 'init does not pack');
+  assert(inited.scripts.prepublishOnly === 'npx --yes @ricardodevs/publish-preflight', 'init adds prepublishOnly');
+  assert(fs.existsSync(path.join(initDir, '.cursor', 'skills', 'publish-preflight', 'SKILL.md')), 'init writes Cursor skill');
+
+  // 14. init chains an existing prepublishOnly
+  const chainDir = path.join(TMP, 'chain-pkg');
+  writeFile(chainDir, 'package.json', JSON.stringify({
+    name: 'chain-pkg',
+    version: '1.0.0',
+    scripts: { prepublishOnly: 'npm run build' },
+  }, null, 2));
+  r = runTool(chainDir, ['init']);
+  const chained = JSON.parse(fs.readFileSync(path.join(chainDir, 'package.json'), 'utf8'));
+  assert(r.status === 0, 'init chain exits 0');
+  assert(
+    chained.scripts.prepublishOnly === 'npm run build && npx --yes @ricardodevs/publish-preflight',
+    'init appends to existing prepublishOnly',
+  );
+
+  // 15. init is idempotent
+  r = runTool(chainDir, ['init']);
+  const again = JSON.parse(fs.readFileSync(path.join(chainDir, 'package.json'), 'utf8'));
+  assert(r.status === 0 && /already runs publish-preflight/.test(r.out), 'init reports already wired');
+  assert(again.scripts.prepublishOnly === chained.scripts.prepublishOnly, 'init does not duplicate the hook');
+
+  // 16. init uses the local bin name when the package is already a dependency
+  const depDir = path.join(TMP, 'dep-pkg');
+  writeFile(depDir, 'package.json', JSON.stringify({
+    name: 'dep-pkg',
+    version: '1.0.0',
+    devDependencies: { '@ricardodevs/publish-preflight': '0.3.0' },
+  }, null, 2));
+  r = runTool(depDir, ['init']);
+  const depped = JSON.parse(fs.readFileSync(path.join(depDir, 'package.json'), 'utf8'));
+  assert(depped.scripts.prepublishOnly === 'publish-preflight', 'init uses local bin when installed');
+
+  // 17. init --ci writes a workflow once
+  const ciDir = path.join(TMP, 'ci-pkg');
+  writeFile(ciDir, 'package.json', JSON.stringify({
+    name: 'ci-pkg',
+    version: '1.0.0',
+  }, null, 2));
+  r = runTool(ciDir, ['init', '--ci']);
+  const wf = path.join(ciDir, '.github', 'workflows', 'publish-preflight.yml');
+  assert(r.status === 0 && fs.existsSync(wf), 'init --ci writes GitHub Actions workflow');
+  fs.writeFileSync(wf, 'stay\n');
+  r = runTool(ciDir, ['init', '--ci']);
+  assert(fs.readFileSync(wf, 'utf8') === 'stay\n', 'init --ci does not overwrite an existing workflow');
+
+  // 18. --ci without init fails
+  r = runTool(goodDir, ['--ci']);
+  assert(r.status === 1 && /only valid with init/.test(r.out), '--ci without init fails');
+
+  // 19. this package packs and smokes as a consumer would
+  r = runTool(path.join(__dirname, '..'));
+  assert(r.status === 0 && /pass — packed artifact/.test(r.out), 'this package passes its own preflight');
 } finally {
   try { fs.rmSync(TMP, { recursive: true, force: true }); } catch (_) { /* ignore */ }
 }

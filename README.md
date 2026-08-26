@@ -1,14 +1,30 @@
 # publish-preflight
 
-Pack the npm tarball, install it into a temp directory, and smoke-test what a
-consumer would run: each `bin`, or `require`/`import` for libraries.
+Would this install for a stranger? Run this before `npm publish`.
 
 ```bash
 npx @ricardodevs/publish-preflight
-npx @ricardodevs/publish-preflight ./path/to/package
 ```
 
-Exit 0 if the packed artifact installs and loads. Exit 1 if it would not.
+It packs the tarball, installs that tarball in a temp directory, and smoke-tests each `bin` (or `require`/`import` for libraries). Exit 0 if a consumer would be fine. Exit 1 if they would not.
+
+## Sit on the publish path
+
+```bash
+npx @ricardodevs/publish-preflight init
+```
+
+That adds a `prepublishOnly` hook (so `npm publish` runs it) and a Cursor skill (so an agent runs it before it ships). `init --ci` also writes a GitHub Actions check.
+
+```json
+{
+  "scripts": {
+    "prepublishOnly": "npx --yes @ricardodevs/publish-preflight"
+  }
+}
+```
+
+If you already have a `prepublishOnly` script, init appends with `&&`.
 
 ## What it checks
 
@@ -25,16 +41,6 @@ does not hang the gate. Override with `--cmd`. Each bin is killed after 15s.
 ```bash
 publish-preflight --cmd "--version"
 publish-preflight --cmd ""          # no args
-```
-
-## Hook it to publish
-
-```json
-{
-  "scripts": {
-    "prepublishOnly": "npx @ricardodevs/publish-preflight"
-  }
-}
 ```
 
 Node 18+. No runtime dependencies.
