@@ -58,11 +58,19 @@ function runError(res, label) {
 }
 
 function parseArgs(argv) {
-  const out = { cmd: ['--help'], dir: null };
+  const out = { cmd: ['--help'], dir: null, init: false, ci: false };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     if (a === '--version' || a === '-v') return { version: true };
     if (a === '--help' || a === '-h') return { help: true };
+    if (a === 'init') {
+      out.init = true;
+      continue;
+    }
+    if (a === '--ci') {
+      out.ci = true;
+      continue;
+    }
     if (a === '--cmd') {
       if (i + 1 >= argv.length) {
         return { error: '--cmd requires a value (use --cmd "" for no args)' };
@@ -75,6 +83,7 @@ function parseArgs(argv) {
     if (out.dir) return { error: `unexpected extra argument: ${a}` };
     out.dir = a;
   }
+  if (out.ci && !out.init) return { error: '--ci is only valid with init' };
   out.dir = path.resolve(out.dir || process.cwd());
   return out;
 }
@@ -86,9 +95,12 @@ pack, install, and smoke-test an npm package as a consumer would
 usage: publish-preflight [package-dir]
        publish-preflight --cmd "--version" [package-dir]
        publish-preflight --cmd "" [package-dir]
+       publish-preflight init [--ci] [package-dir]
 
 --cmd <args>   arguments passed to each bin (default: --help)
-               empty string runs the bin with no args`);
+               empty string runs the bin with no args
+init           wire prepublishOnly + a Cursor skill so it runs on publish
+--ci           with init, also write a GitHub Actions check`);
 }
 
 function normalizeBins(pkg) {
@@ -230,6 +242,12 @@ function main() {
   }
   if (args.error) {
     fail(args.error);
+    return;
+  }
+
+  if (args.init) {
+    const { runInit } = require('./init.js');
+    runInit(args.dir, { ci: args.ci });
     return;
   }
 
