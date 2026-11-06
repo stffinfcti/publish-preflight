@@ -1,7 +1,8 @@
 # publish-preflight
 
-Pack the npm tarball, install it into a temp directory, and smoke-test what a
-consumer would run: each `bin`, or `require`/`import` for libraries.
+**A broken `bin` or missing export can't be unpublished.** publish-preflight
+packs the npm tarball, installs it into a clean temp directory, and smoke-tests
+what a consumer would run: each `bin`, or `require`/`import` for libraries.
 
 ```bash
 npx @ricardodevs/publish-preflight
